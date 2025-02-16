@@ -1,0 +1,17 @@
+[project]
+name = "vigil"
+version = "0.1.0"
+description = ""
+readme = "README.md"
+authors = [
+    { name = "waseemR02", email = "waseem.riaz.9999@gmail.com" }
+]
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+vigil = "vigil:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
