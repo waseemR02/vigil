@@ -7,10 +7,14 @@ authors = [
     { name = "waseemR02", email = "waseem.riaz.9999@gmail.com" }
 ]
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [
+    "bs4>=0.0.2",
+    "requests>=2.32.3",
+]
 
 [project.scripts]
 vigil = "vigil:main"
+scrapper = "vigil.data_collection.scrapper:main"
 
 [build-system]
 requires = ["hatchling"]
