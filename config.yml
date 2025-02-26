@@ -1,4 +1,9 @@
 # VIGIL Configuration File
 logging:
   level: INFO
+  name: vigil
   file: logs/vigil.log
+  file_level: DEBUG
+  file_overwrite: true   # Overwrite log file on startup (true) or append (false)
+  console: true
+  console_level: INFO

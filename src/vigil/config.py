@@ -56,6 +56,12 @@ def load_config() -> Config:
     default_config = {
         'logging': {
             'level': 'INFO',
+            'console': True,
+            'console_level': 'INFO',
+            'file': None,  # Default to no file logging
+            'file_level': 'DEBUG',
+            'max_size': 10 * 1024 * 1024,  # 10MB
+            'backup_count': 5
         }
     }
     
