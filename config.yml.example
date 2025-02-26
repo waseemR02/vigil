@@ -1,0 +1,11 @@
+# VIGIL Configuration Example
+
+logging:
+  name: vigil             # Logger name (default: vigil)
+  level: INFO             # Main log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+  console: true           # Enable console logging (default: true)
+  console_level: INFO     # Console log level (defaults to main level if not specified)
+  file: /var/log/vigil/vigil.log  # Log file path (set to null to disable file logging)
+  file_level: DEBUG       # File log level (defaults to main level if not specified)
+  max_size: 10485760       # Maximum log file size in bytes (10MB)
+  backup_count: 5          # Number of backup log files to keep
