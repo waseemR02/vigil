@@ -19,8 +19,6 @@ def main() -> None:
     log_file = config.config.get('logging', {}).get('file')
     if log_file and os.path.isfile(log_file):
         logger.info(f"Logging to file: {log_file}")
-        # Test debug logging
-        logger.debug("This is a debug message to verify debug logging is working")
     elif log_file:
         logger.warning(f"Log file specified but not created: {log_file}")
     

@@ -7,5 +7,6 @@ logging:
   console_level: INFO     # Console log level (defaults to main level if not specified)
   file: /var/log/vigil/vigil.log  # Log file path (set to null to disable file logging)
   file_level: DEBUG       # File log level (defaults to main level if not specified)
-  max_size: 10485760       # Maximum log file size in bytes (10MB)
-  backup_count: 5          # Number of backup log files to keep
+  file_overwrite: true    # Overwrite log file on startup (true) or append (false)
+  max_size: 10485760      # Maximum log file size in bytes (10MB)
+  backup_count: 5         # Number of backup log files to keep

@@ -57,17 +57,18 @@ class Logger:
         self.logger.addHandler(console_handler)
         return self
 
-    def add_file_handler(self, filename, level=None):
+    def add_file_handler(self, filename, level=None, mode='a'):
         """
         Add file handler.
 
         :param filename: Log filename
         :param level: File handler level
+        :param mode: File open mode ('a' for append, 'w' for overwrite)
         """
         # Ensure the directory exists
         os.makedirs(os.path.dirname(os.path.abspath(filename)), exist_ok=True)
         
-        file_handler = logging.FileHandler(filename)
+        file_handler = logging.FileHandler(filename, mode=mode)
         file_handler.setFormatter(self.formatter)
         
         if level is not None:
@@ -77,7 +78,6 @@ class Logger:
             file_handler.setLevel(self.logger.level)
         
         self.logger.addHandler(file_handler)
-        print(f"File handler added with level: {logging.getLevelName(file_handler.level)}")
         return self
 
     def get_logger(self):
@@ -150,12 +150,10 @@ def setup_logging(log_config):
             directory = os.path.dirname(os.path.abspath(log_path))
             os.makedirs(directory, exist_ok=True)
             
-            logger.add_file_handler(log_path, file_level)
-            print(f"File logging enabled at: {log_path} with level: {logging.getLevelName(file_level)}")
+            # Determine file mode - 'w' to overwrite, 'a' to append
+            file_mode = 'w' if log_config.get('file_overwrite', True) else 'a'
             
-            # Test the debug logging capability
-            log_instance = logger.get_logger()
-            log_instance.debug("Debug logging test from setup_logging")
+            logger.add_file_handler(log_path, file_level, mode=file_mode)
             
         except Exception as e:
             print(f"Warning: Failed to set up file logging: {e}")
