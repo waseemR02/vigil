@@ -20,14 +20,14 @@ class Logger:
         self.name = name or __name__
         self.logger = logging.getLogger(self.name)
         
-        # Standard formatter for INFO and above
+        # Standard formatter for INFO and above with padding for levelname
         self.standard_formatter = logging.Formatter(
-            '%(asctime)s - %(levelname)s - %(message)s'
+            '%(asctime)s - [%(levelname)-5s] - %(message)s'
         )
         
         # Detailed formatter for DEBUG level - uses module instead of full path
         self.debug_formatter = logging.Formatter(
-            '%(asctime)s - %(levelname)s - [%(module)s:%(lineno)d:%(funcName)s] - %(message)s'
+            '%(asctime)s - [%(levelname)-5s] - [%(module)s:%(lineno)d:%(funcName)s] - %(message)s'
         )
 
     def set_level(self, level):
