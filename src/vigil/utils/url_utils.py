@@ -45,14 +45,14 @@ def normalize_url(url: str) -> str:
     query_params.sort()
     query = urlencode(query_params)
     
-    # Remove trailing slash from path if present
+    # Handle path - remove trailing slashes except for root path
     path = parsed.path
     if path.endswith('/') and path != '/':
         path = path[:-1]
     
-    # If path is just '/', make it empty when there are no query parameters
-    if path == '/' and not query:
-        path = ''
+    # If path is empty, set to '/' for consistency
+    if not path:
+        path = '/'
     
     # Rebuild the URL
     normalized = urlunparse((scheme, netloc, path, parsed.params, query, ''))
