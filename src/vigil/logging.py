@@ -6,6 +6,51 @@ import os
 import sys
 
 
+class ColoredFormatter(logging.Formatter):
+    """
+    Formatter that adds color to logs in the console.
+    """
+    # Color codes
+    RESET = "\033[0m"
+    BLACK = "\033[30m"
+    RED = "\033[31m"
+    GREEN = "\033[32m"
+    YELLOW = "\033[33m"
+    BLUE = "\033[34m"
+    MAGENTA = "\033[35m"
+    CYAN = "\033[36m"
+    WHITE = "\033[37m"
+    BOLD = "\033[1m"
+
+    # Log level colors
+    COLORS = {
+        logging.DEBUG: CYAN,
+        logging.INFO: GREEN,
+        logging.WARNING: YELLOW,
+        logging.ERROR: RED,
+        logging.CRITICAL: RED + BOLD,
+    }
+
+    def format(self, record):
+        # Save original levelname
+        original_levelname = record.levelname
+        # Add color to levelname if we're in a terminal
+        if sys.stdout.isatty() and record.levelno in self.COLORS:
+            # Pad the levelname to 5 characters before adding color
+            color = self.COLORS[record.levelno]
+            record.levelname = f"{color}{original_levelname:7}{self.RESET}"
+        else:
+            # Just pad without color
+            record.levelname = f"{original_levelname:7}"
+        
+        # Format the record
+        result = super().format(record)
+        
+        # Restore original levelname
+        record.levelname = original_levelname
+        return result
+
+
 class Logger:
     """
     Logger class for logging application events.
@@ -20,15 +65,17 @@ class Logger:
         self.name = name or __name__
         self.logger = logging.getLogger(self.name)
         
-        # Standard formatter for INFO and above with padding for levelname
-        self.standard_formatter = logging.Formatter(
-            '%(asctime)s - [%(levelname)-5s] - %(message)s'
-        )
+        # Base format strings
+        self.standard_format = '%(asctime)s - [%(levelname)-7s] - %(message)s'
+        self.debug_format = '%(asctime)s - [%(levelname)-7s] - [%(module)s:%(lineno)d:%(funcName)s] - %(message)s'
         
-        # Detailed formatter for DEBUG level - uses module instead of full path
-        self.debug_formatter = logging.Formatter(
-            '%(asctime)s - [%(levelname)-5s] - [%(module)s:%(lineno)d:%(funcName)s] - %(message)s'
-        )
+        # Standard formatters for file output
+        self.standard_formatter = logging.Formatter(self.standard_format)
+        self.debug_formatter = logging.Formatter(self.debug_format)
+        
+        # Colored formatters for console output
+        self.colored_std_formatter = ColoredFormatter(self.standard_format)
+        self.colored_debug_formatter = ColoredFormatter(self.debug_format)
 
     def set_level(self, level):
         """
@@ -54,11 +101,11 @@ class Logger:
         """
         console_handler = logging.StreamHandler()
         
-        # Choose formatter based on level
+        # Choose formatter based on level, using colored formatters for console
         if level == logging.DEBUG:
-            console_handler.setFormatter(self.debug_formatter)
+            console_handler.setFormatter(self.colored_debug_formatter)
         else:
-            console_handler.setFormatter(self.standard_formatter)
+            console_handler.setFormatter(self.colored_std_formatter)
         
         if level is not None:
             console_handler.setLevel(level)
@@ -151,7 +198,7 @@ def setup_logging(log_config):
     # The root logger should be set to the lowest level of any handler
     root_level = min(log_level, console_level, file_level)
     
-    # Setup logger
+    # Setup logger (removed use_color parameter)
     logger_name = log_config.get('name', 'vigil')
     logger = Logger(logger_name).set_level(root_level)
     
