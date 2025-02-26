@@ -191,11 +191,14 @@ def test_change_user_agent(crawler):
     assert crawler.user_agent == new_ua
     assert crawler.headers["User-Agent"] == new_ua
     
-    # Change to random user agent
-    crawler.change_user_agent()
-    assert crawler.user_agent in BaseCrawler.DEFAULT_USER_AGENTS
-    assert crawler.user_agent != original_ua  # This could theoretically fail but is unlikely
-    assert crawler.headers["User-Agent"] == crawler.user_agent
+    # Change to random user agent but explicitly ensure it's different
+    # We need to modify the DEFAULT_USER_AGENTS list for the test to ensure we get a different one
+    with mock.patch.object(BaseCrawler, 'DEFAULT_USER_AGENTS', 
+                          ["Different UA 1", "Different UA 2", "Different UA 3"]):
+        crawler.change_user_agent()
+        assert crawler.user_agent in BaseCrawler.DEFAULT_USER_AGENTS
+        assert crawler.user_agent != new_ua  # Compare with the previous value instead of original
+        assert crawler.headers["User-Agent"] == crawler.user_agent
 
 
 @pytest.mark.parametrize("method", ["GET", "POST", "PUT", "DELETE"])
