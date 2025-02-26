@@ -19,8 +19,15 @@ class Logger:
         """
         self.name = name or __name__
         self.logger = logging.getLogger(self.name)
-        self.formatter = logging.Formatter(
+        
+        # Standard formatter for INFO and above
+        self.standard_formatter = logging.Formatter(
             '%(asctime)s - %(levelname)s - %(message)s'
+        )
+        
+        # Detailed formatter for DEBUG level - uses module instead of full path
+        self.debug_formatter = logging.Formatter(
+            '%(asctime)s - %(levelname)s - [%(module)s:%(lineno)d:%(funcName)s] - %(message)s'
         )
 
     def set_level(self, level):
@@ -46,7 +53,12 @@ class Logger:
         :param level: Console handler level
         """
         console_handler = logging.StreamHandler()
-        console_handler.setFormatter(self.formatter)
+        
+        # Choose formatter based on level
+        if level == logging.DEBUG:
+            console_handler.setFormatter(self.debug_formatter)
+        else:
+            console_handler.setFormatter(self.standard_formatter)
         
         if level is not None:
             console_handler.setLevel(level)
@@ -69,7 +81,12 @@ class Logger:
         os.makedirs(os.path.dirname(os.path.abspath(filename)), exist_ok=True)
         
         file_handler = logging.FileHandler(filename, mode=mode)
-        file_handler.setFormatter(self.formatter)
+        
+        # Choose formatter based on level
+        if level == logging.DEBUG:
+            file_handler.setFormatter(self.debug_formatter)
+        else:
+            file_handler.setFormatter(self.standard_formatter)
         
         if level is not None:
             file_handler.setLevel(level)
