@@ -6,5 +6,9 @@ training models, and making predictions.
 """
 
 from vigil.model.data_prep import TextPreprocessor, DataLoader, FeatureExtractor, DatasetPreparer, prepare_dataset
+from vigil.model.training import ModelTrainer, ContentPredictor, train_model
 
-__all__ = ['TextPreprocessor', 'DataLoader', 'FeatureExtractor', 'DatasetPreparer', 'prepare_dataset']
+__all__ = [
+    'TextPreprocessor', 'DataLoader', 'FeatureExtractor', 'DatasetPreparer', 'prepare_dataset',
+    'ModelTrainer', 'ContentPredictor', 'train_model'
+]
