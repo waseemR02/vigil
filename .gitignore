@@ -9,8 +9,9 @@ wheels/
 # Virtual environments
 .venv
 
-# Logs and crawled data
+# Logs, data and reports
 logs/
 crawled_data/
 data/
 dataset/
+reports/

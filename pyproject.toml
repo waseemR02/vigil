@@ -27,6 +27,7 @@ vigil-label = "vigil.tools.label_articles:main"
 vigil-prep = "vigil.tools.preprocess:main"
 vigil-train = "vigil.tools.train_model:main"
 vigil-classify = "vigil.tools.classify:main"
+vigil-visualize = "vigil.tools.visualize:main"
 
 [build-system]
 requires = ["hatchling"]
