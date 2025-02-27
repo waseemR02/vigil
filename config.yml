@@ -7,3 +7,22 @@ logging:
   file_overwrite: true   # Overwrite log file on startup (true) or append (false)
   console: true
   console_level: INFO
+
+crawler:
+  user_agent: "VIGIL Cybersecurity News Crawler/0.1"
+  timeout: 30
+  delay: 1.5
+  max_retries: 3
+  max_depth: 2
+  max_urls: 50
+  output_dir: "crawled_data"
+  start_urls:
+    - "https://www.cisa.gov/news-events/cybersecurity-advisories"
+    - "https://thehackernews.com/"
+    - "https://www.bleepingcomputer.com/"
+    - "https://krebsonsecurity.com/"
+  allowed_domains:
+    - "www.cisa.gov"
+    - "thehackernews.com"
+    - "www.bleepingcomputer.com"
+    - "krebsonsecurity.com"
