@@ -11,6 +11,8 @@ from urllib.parse import urljoin, urlparse
 import requests
 from bs4 import BeautifulSoup
 
+from vigil.data_collection.content_extractor import ContentExtractor
+
 # Configure module logger
 logger = logging.getLogger('vigil.data_collection.crawler')
 
@@ -34,6 +36,7 @@ class Crawler:
         self.domain_last_access = {}
         self.session = requests.Session()
         self.session.headers.update({'User-Agent': self.user_agent})
+        self.content_extractor = ContentExtractor()
     
     def fetch_url(self, url):
         """
@@ -198,6 +201,9 @@ class Crawler:
             if content and status == 200:
                 soup = self.parse_html(content)
                 
+                # Extract structured content
+                extracted_content = self.content_extractor.extract_content(content, url)
+                
                 # Store the result
                 results[url] = {
                     'url': url,
@@ -205,7 +211,8 @@ class Crawler:
                     'content': content,
                     'soup': soup,
                     'status': status,
-                    'timestamp': time.time()
+                    'timestamp': time.time(),
+                    'extracted_content': extracted_content
                 }
                 
                 # If we're not at max depth, extract and queue links
@@ -225,66 +232,12 @@ class Crawler:
                     'content': None,
                     'soup': None,
                     'status': status,
-                    'timestamp': time.time()
+                    'timestamp': time.time(),
+                    'extracted_content': None
                 }
         
         logger.info(f"Crawling complete. Processed {len(results)} URLs.")
         return results
     
-    def extract_article_content(self, soup, url):
-        """
-        Basic article content extraction from HTML. 
-        This is a simplified version - production code would need more complex extraction.
-        
-        Args:
-            soup (BeautifulSoup): Parsed HTML
-            url (str): URL of the article
-            
-        Returns:
-            dict: Dictionary with article metadata
-        """
-        if not soup:
-            return None
-        
-        article = {
-            'url': url,
-            'title': '',
-            'text': '',
-            'published_date': None
-        }
-        
-        # Extract title - try common patterns
-        title_tag = soup.find('h1') or soup.find('title')
-        if title_tag:
-            article['title'] = title_tag.get_text().strip()
-        
-        # Extract main content - simplified approach
-        # In a production system, we'd use more sophisticated content extraction
-        content_tags = soup.find_all(['p', 'article', 'section', 'div'], class_=lambda c: c and any(
-            t in str(c).lower() for t in ['content', 'article', 'entry', 'text', 'body', 'story']
-        ))
-        
-        # Concatenate text from relevant tags
-        content_text = []
-        for tag in content_tags:
-            # Skip empty or very short paragraphs
-            text = tag.get_text().strip()
-            if len(text) > 50:  # Arbitrary threshold to filter out navigation/header text
-                content_text.append(text)
-        
-        article['text'] = "\n\n".join(content_text)
-        
-        # Look for a date
-        date_tags = soup.find_all(['time', 'span', 'div', 'p'], class_=lambda c: c and any(
-            t in str(c).lower() for t in ['date', 'time', 'published', 'post']
-        ))
-        
-        for tag in date_tags:
-            if tag.get('datetime'):
-                article['published_date'] = tag.get('datetime')
-                break
-            elif tag.get_text() and re.search(r'\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{4}[/-]\d{1,2}[/-]\d{1,2}', tag.get_text()):
-                article['published_date'] = tag.get_text().strip()
-                break
-        
-        return article
+    # The extract_article_content method is now superseded by the ContentExtractor class
+    # We can either delete it or keep it for backward compatibility
