@@ -12,11 +12,13 @@ dependencies = [
     "datetime>=5.5",
     "pyyaml>=6.0",
     "requests>=2.32.3",
+    "rich>=13.9.4",
 ]
 
 [project.scripts]
 vigil = "vigil:main"
-vigil-crawl = "vigil.crawl:main"
+vigil-crawl = "vigil.tools.crawl:main"
+vigil-label = "vigil.tools.label_articles:main"
 
 [build-system]
 requires = ["hatchling"]
