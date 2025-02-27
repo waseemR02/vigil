@@ -12,3 +12,4 @@ wheels/
 # Logs and crawled data
 logs/
 crawled_data/
+data/
