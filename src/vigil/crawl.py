@@ -59,12 +59,13 @@ def save_crawled_data(results, output_dir):
             'depth': data['depth'],
             'status': data['status'],
             'timestamp': data['timestamp'],
-            'title': None,
             'has_content': data['content'] is not None
         }
         
-        # If we have parsed content, add the title
-        if data['soup']:
+        # Add title from extracted content if available
+        if data.get('extracted_content') and data['extracted_content'].get('title'):
+            summary_item['title'] = data['extracted_content']['title']
+        elif data['soup']:
             title_tag = data['soup'].find('title')
             if title_tag:
                 summary_item['title'] = title_tag.get_text().strip()
@@ -75,19 +76,32 @@ def save_crawled_data(results, output_dir):
     with open(os.path.join(results_dir, 'summary.json'), 'w') as f:
         json.dump(summary, f, indent=2)
     
-    # Save individual page content
-    content_dir = os.path.join(results_dir, 'content')
+    # Save raw HTML content
+    content_dir = os.path.join(results_dir, 'html')
     os.makedirs(content_dir, exist_ok=True)
     
+    # Save extracted content as JSON
+    extracted_dir = os.path.join(results_dir, 'extracted')
+    os.makedirs(extracted_dir, exist_ok=True)
+    
     for url, data in results.items():
+        # Create a safe filename from URL
+        filename = ''.join(c if c.isalnum() else '_' for c in url)
+        filename = filename[-150:] if len(filename) > 150 else filename  # Limit length
+        
+        # Save raw HTML if available
         if data['content']:
-            # Create a safe filename from URL
-            filename = ''.join(c if c.isalnum() else '_' for c in url)
-            filename = filename[-150:] if len(filename) > 150 else filename  # Limit length
-            filename = f"{filename}.html"
-            
-            with open(os.path.join(content_dir, filename), 'w', encoding='utf-8') as f:
+            html_filename = f"{filename}.html"
+            with open(os.path.join(content_dir, html_filename), 'w', encoding='utf-8') as f:
                 f.write(data['content'])
+        
+        # Save extracted content if available
+        if data.get('extracted_content'):
+            json_filename = f"{filename}.json"
+            with open(os.path.join(extracted_dir, json_filename), 'w', encoding='utf-8') as f:
+                # Remove BeautifulSoup object before serializing to JSON
+                extracted_content = data['extracted_content']
+                json.dump(extracted_content, f, indent=2)
     
     return results_dir
 
@@ -166,12 +180,14 @@ def main():
     
     # Print summary
     success_count = sum(1 for data in results.values() if data['status'] == 200)
+    extracted_count = sum(1 for data in results.values() if data.get('extracted_content') and data['extracted_content'].get('content'))
     
     logger.info("Crawl completed!")
     logger.info(f"Time taken: {end_time - start_time:.2f} seconds")
     logger.info(f"URLs processed: {len(results)}")
     logger.info(f"Successful fetches: {success_count}")
     logger.info(f"Failed fetches: {len(results) - success_count}")
+    logger.info(f"Articles with extracted content: {extracted_count}")
     logger.info(f"Results saved to: {results_dir}")
 
 
