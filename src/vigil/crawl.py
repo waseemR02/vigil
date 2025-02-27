@@ -8,11 +8,13 @@ import logging
 import os
 import sys
 import time
+import datetime
 from pathlib import Path
 
 from vigil.config import load_config
 from vigil.data_collection.crawler import Crawler
 from vigil.logging import setup_logging
+from vigil.storage import init_storage
 
 
 def parse_arguments():
@@ -37,11 +39,20 @@ def parse_arguments():
     parser.add_argument("--url", "-u", action="append",
                         help="Add a start URL (can be used multiple times)")
     
+    parser.add_argument("--no-db", action="store_true",
+                        help="Don't store results in database")
+    
+    parser.add_argument("--export", "-e", choices=["json", "csv", "none"],
+                        help="Export results after crawling")
+    
     return parser.parse_args()
 
 
-def save_crawled_data(results, output_dir):
-    """Save crawled data to output directory."""
+def save_crawled_data(results, output_dir, storage=None, storage_config=None):
+    """Save crawled data to output directory and database."""
+    # Get logger
+    logger = logging.getLogger('vigil.crawl')
+    
     # Create output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
     
@@ -84,6 +95,9 @@ def save_crawled_data(results, output_dir):
     extracted_dir = os.path.join(results_dir, 'extracted')
     os.makedirs(extracted_dir, exist_ok=True)
     
+    # Track articles to add to database
+    articles_to_store = []
+    
     for url, data in results.items():
         # Create a safe filename from URL
         filename = ''.join(c if c.isalnum() else '_' for c in url)
@@ -102,8 +116,95 @@ def save_crawled_data(results, output_dir):
                 # Remove BeautifulSoup object before serializing to JSON
                 extracted_content = data['extracted_content']
                 json.dump(extracted_content, f, indent=2)
+            
+            # Add to list for database storage
+            articles_to_store.append(extracted_content)
     
-    return results_dir
+    # If we have database storage and auto_save is enabled, save there too
+    stored_count = 0
+    if storage and storage.get('db_store') and articles_to_store:
+        # Check if auto_save is enabled in config
+        auto_save = True  # Default to True
+        if storage_config and 'auto_save' in storage_config:
+            auto_save = storage_config.get('auto_save')
+        
+        if auto_save:
+            db_store = storage['db_store']
+            stored_count = db_store.add_articles_batch(articles_to_store)
+            logger.info(f"Stored {stored_count} articles in database")
+        else:
+            logger.info("Database storage disabled (auto_save=False)")
+    
+    # Handle auto export if configured
+    if storage and storage.get('db_store') and storage_config:
+        auto_export = storage_config.get('auto_export', False)
+        export_format = storage_config.get('export_format', 'json')
+        
+        if auto_export and export_format:
+            export_file = os.path.join(results_dir, f"export.{export_format}")
+            db_store = storage['db_store']
+            
+            if export_format == 'json':
+                count = db_store.export_to_json(export_file)
+                logger.info(f"Auto-exported {count} articles to {export_file}")
+            elif export_format == 'csv':
+                count = db_store.export_to_csv(export_file)
+                logger.info(f"Auto-exported {count} articles to {export_file}")
+    
+    return results_dir, stored_count
+
+
+def log_crawl_session(storage, start_time, end_time, urls_processed, success_count, config):
+    """Log the crawl session to the database."""
+    if storage and storage.get('db_store'):
+        try:
+            session_id = storage['db_store'].log_crawl_session(
+                start_time=start_time,
+                end_time=end_time,
+                urls_processed=urls_processed,
+                success_count=success_count,
+                config=config
+            )
+            return session_id
+        except Exception as e:
+            logger = logging.getLogger('vigil.crawl')
+            logger.error(f"Failed to log crawl session: {str(e)}")
+    
+    return None
+
+
+def export_results(storage, export_format, output_dir, filters=None):
+    """Export crawled data to a file."""
+    logger = logging.getLogger('vigil.crawl')
+    
+    if not storage or not storage.get('db_store'):
+        logger.warning("No database storage available for export")
+        return 0
+    
+    if not export_format or export_format == 'none':
+        return 0
+        
+    # Create export filename with timestamp
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
+    export_file = os.path.join(output_dir, f"export-{timestamp}.{export_format}")
+    
+    # Ensure directory exists
+    os.makedirs(os.path.dirname(export_file), exist_ok=True)
+    
+    # Export based on format
+    db_store = storage['db_store']
+    count = 0
+    
+    if export_format == 'json':
+        count = db_store.export_to_json(export_file, filters)
+        logger.info(f"Exported {count} articles to {export_file}")
+    elif export_format == 'csv':
+        count = db_store.export_to_csv(export_file, filters)
+        logger.info(f"Exported {count} articles to {export_file}")
+    else:
+        logger.warning(f"Unsupported export format: {export_format}")
+    
+    return count
 
 
 def main():
@@ -127,6 +228,15 @@ def main():
     
     logger = setup_logging(log_config)
     logger.info("VIGIL Cybersecurity News Crawler starting...")
+    
+    # Initialize storage if not disabled via command line
+    storage = None
+    storage_config = config.config.get('storage', {})
+    if not args.no_db:
+        storage = init_storage(config.config)
+        logger.info(f"Storage initialized: file_store={storage['file_store'].base_dir}, db_store={storage['db_store'].db_path}")
+    else:
+        logger.info("Database storage disabled via command line")
     
     # Get crawler configuration
     crawler_config = config.config.get('crawler', {})
@@ -165,7 +275,11 @@ def main():
     logger.info(f"Starting crawl with {len(start_urls)} seed URLs, max depth {max_depth}, max URLs {max_urls}")
     logger.info(f"Seed URLs: {', '.join(start_urls)}")
     
+    # Record start time for logging
+    start_time_iso = datetime.datetime.now().isoformat()
     start_time = time.time()
+    
+    # Do the crawl
     results = crawler.crawl(
         start_urls=start_urls,
         max_depth=max_depth,
@@ -173,10 +287,36 @@ def main():
         url_patterns=crawler_config.get('url_patterns'),
         max_urls=max_urls
     )
+    
+    # Record end time
     end_time = time.time()
+    end_time_iso = datetime.datetime.now().isoformat()
     
     # Save results
-    results_dir = save_crawled_data(results, output_dir)
+    results_dir, stored_count = save_crawled_data(
+        results, 
+        output_dir, 
+        storage=storage,
+        storage_config=storage_config
+    )
+    
+    # Log the crawl session
+    if storage:
+        success_count = sum(1 for data in results.values() if data['status'] == 200)
+        session_id = log_crawl_session(
+            storage,
+            start_time=start_time_iso,
+            end_time=end_time_iso,
+            urls_processed=len(results),
+            success_count=success_count,
+            config=crawler_config
+        )
+        if session_id:
+            logger.info(f"Crawl session logged with ID: {session_id}")
+    
+    # Handle explicit export request (overrides auto-export)
+    if args.export and args.export != 'none' and storage:
+        export_results(storage, args.export, output_dir)
     
     # Print summary
     success_count = sum(1 for data in results.values() if data['status'] == 200)
@@ -188,8 +328,6 @@ def main():
     logger.info(f"Successful fetches: {success_count}")
     logger.info(f"Failed fetches: {len(results) - success_count}")
     logger.info(f"Articles with extracted content: {extracted_count}")
+    logger.info(f"Articles stored in database: {stored_count}")
     logger.info(f"Results saved to: {results_dir}")
 
-
-if __name__ == "__main__":
-    main()
