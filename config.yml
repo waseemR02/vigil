@@ -26,3 +26,10 @@ crawler:
     - "thehackernews.com"
     - "www.bleepingcomputer.com"
     - "krebsonsecurity.com"
+
+storage:
+  file_store_path: "data"
+  db_path: "data/vigil_data.db"
+  auto_save: true    # Automatically save crawled content to the database
+  auto_export: true # Automatically export data after crawling
+  export_format: "json"
