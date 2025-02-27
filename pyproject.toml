@@ -8,11 +8,14 @@ authors = [
 ]
 requires-python = ">=3.10"
 dependencies = [
+    "bs4>=0.0.2",
     "pyyaml>=6.0",
+    "requests>=2.32.3",
 ]
 
 [project.scripts]
 vigil = "vigil:main"
+vigil-crawl = "vigil.crawl:main"
 
 [build-system]
 requires = ["hatchling"]
