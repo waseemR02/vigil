@@ -22,6 +22,7 @@ crawler:
     - "https://securityledger.com/"
     - "https://www.itsecurityguru.org/"
     - "https://www.bleepingcomputer.com/"
+    - "https://securityboulevard.com/security-creators-network/"
     - "https://krebsonsecurity.com/"
   allowed_domains:
     - "thehackernews.com"
