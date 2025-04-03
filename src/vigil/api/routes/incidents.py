@@ -1,8 +1,12 @@
 from fastapi import APIRouter, HTTPException, Query, Path
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
 from datetime import datetime
 from vigil.database import queries
+import logging
+
+# Set up logger
+logger = logging.getLogger("vigil.api.incidents")
 
 router = APIRouter(prefix="/incidents", tags=["incidents"])
 
@@ -10,11 +14,17 @@ router = APIRouter(prefix="/incidents", tags=["incidents"])
 class TagResponse(BaseModel):
     id: int
     name: str
+    
+    class Config:
+        orm_mode = True
 
 class SourceResponse(BaseModel):
     id: int
     name: str
     url: Optional[str] = None
+    
+    class Config:
+        orm_mode = True
 
 class IncidentBase(BaseModel):
     id: int
@@ -23,6 +33,9 @@ class IncidentBase(BaseModel):
     source_reference: Optional[str] = None
     created_at: datetime
     updated_at: datetime
+    
+    class Config:
+        orm_mode = True
 
 class IncidentListItem(IncidentBase):
     source: Optional[SourceResponse] = None
@@ -57,8 +70,15 @@ async def list_incidents(
 @router.get("/recent", response_model=List[IncidentListItem])
 async def get_recent_incidents(limit: int = Query(10, ge=1, le=50)):
     """Get the most recent incidents for the dashboard."""
-    result = queries.list_incidents(page=1, per_page=limit)
-    return result["items"]
+    try:
+        result = queries.list_incidents(page=1, per_page=limit)
+        return result["items"]
+    except Exception as e:
+        logger.exception("Error fetching recent incidents: %s", str(e))
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Failed to fetch recent incidents: {str(e)}"
+        )
 
 @router.get("/{incident_id}", response_model=IncidentListItem)
 async def get_incident(incident_id: int = Path(..., ge=1)):
