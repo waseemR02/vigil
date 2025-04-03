@@ -20,6 +20,8 @@ dependencies = [
     "seaborn>=0.13.2",
     "schedule>=1.2.2",
     "sqlalchemy>=2.0.40",
+    "fastapi>=0.115.12",
+    "uvicorn>=0.34.0",
 ]
 
 [project.scripts]
