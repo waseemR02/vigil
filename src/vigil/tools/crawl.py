@@ -9,7 +9,6 @@ import os
 import sys
 import time
 import datetime
-from pathlib import Path
 
 from vigil.config import load_config
 from vigil.data_collection.crawler import Crawler

@@ -184,7 +184,7 @@ def setup_logging(log_config):
         try:
             console_level = getattr(logging, console_level.upper())
         except (AttributeError, TypeError):
-            print(f"Warning: Invalid console log level. Using base log level.")
+            print("Warning: Invalid console log level. Using base log level.")
             console_level = log_level
 
     file_level = log_config.get('file_level', log_level)
@@ -192,7 +192,7 @@ def setup_logging(log_config):
         try:
             file_level = getattr(logging, file_level.upper())
         except (AttributeError, TypeError):
-            print(f"Warning: Invalid file log level. Using base log level.")
+            print("Warning: Invalid file log level. Using base log level.")
             file_level = log_level
 
     # The root logger should be set to the lowest level of any handler

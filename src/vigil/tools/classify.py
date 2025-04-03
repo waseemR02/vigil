@@ -7,15 +7,11 @@ as relevant or not relevant to cybersecurity incidents.
 
 import argparse
 import json
-import logging
 import os
 import sys
-from pathlib import Path
 
 from rich.console import Console
 from rich.panel import Panel
-from rich.table import Table
-from rich.markdown import Markdown
 
 # Add parent directory to sys.path if running as script
 if __name__ == "__main__" and __package__ is None:

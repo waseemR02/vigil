@@ -10,16 +10,14 @@ import json
 import logging
 import os
 import pickle
-from pathlib import Path
-from typing import Dict, Any, Tuple, Optional, List, Union
+from typing import Dict, Any, Tuple, List, Union
 
 import numpy as np
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 from sklearn.svm import LinearSVC
-from sklearn.pipeline import Pipeline
 
-from vigil.model.data_prep import TextPreprocessor, FeatureExtractor
+from vigil.model.data_prep import FeatureExtractor
 
 # Configure module logger
 logger = logging.getLogger('vigil.model.training')
@@ -134,7 +132,7 @@ class ModelTrainer:
         })
         
         # Log results
-        logger.info(f"Evaluation results:")
+        logger.info("Evaluation results:")
         logger.info(f"  Accuracy:  {self.metrics['accuracy']:.4f}")
         logger.info(f"  Precision: {self.metrics['precision']:.4f}")
         logger.info(f"  Recall:    {self.metrics['recall']:.4f}")
@@ -275,17 +273,23 @@ class ContentPredictor:
         if not self.feature_extractor and vectorizer_path:
             self.load_vectorizer(vectorizer_path)
     
-    def load_model(self, model_path: str) -> bool:
+    def load_model(self, model_path: str, vectorizer_path: str = None) -> bool:
         """
         Load a model from disk.
         
         Args:
             model_path: Path to the saved model
+            vectorizer_path: Path to the saved vectorizer
             
         Returns:
             True if successful, False otherwise
         """
         self.model_trainer = ModelTrainer.load_model(model_path)
+        
+        # Load vectorizer if path is provided
+        if vectorizer_path and not self.feature_extractor:
+            self.load_vectorizer(vectorizer_path)
+            
         return self.model_trainer is not None
     
     def load_vectorizer(self, vectorizer_path: str) -> bool:
@@ -417,7 +421,7 @@ class ContentPredictor:
         preprocessed = self.feature_extractor.preprocessor.preprocess_text(text)
         
         # Extract features
-        features = self.feature_extractor.transform([text])
+        self.feature_extractor.transform([text])
         
         # Get prediction
         prediction, confidence = self.predict_with_score(text)
@@ -489,7 +493,7 @@ def train_model(dataset_path: str, model_type: str = 'logistic_regression',
         
         # Evaluate model if test data is available
         if X_test is not None and y_test is not None:
-            metrics = trainer.evaluate(X_test, y_test)
+            trainer.evaluate(X_test, y_test)
         else:
             logger.warning("No test data available for evaluation")
         
