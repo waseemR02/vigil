@@ -13,6 +13,7 @@ from typing import Dict, Tuple
 from bs4 import BeautifulSoup
 import requests
 
+from vigil.config import load_config
 from vigil.data_collection.crawler import Crawler
 from vigil.data_collection.content_extractor import ContentExtractor
 from vigil.model.training import ContentPredictor
@@ -35,7 +36,7 @@ class Pipeline:
             vectorizer_path: Path to vectorizer file (overrides config setting)
         """
         # Load configuration
-        self.config = self._load_config(config_path)
+        self.config = self._load_config()
         
         # Initialize database
         try:
@@ -97,37 +98,14 @@ class Pipeline:
         
         logger.info("Pipeline initialized")
     
-    def _load_config(self, config_path=None):
+    def _load_config(self):
         """Load configuration from YAML file."""
-        if not config_path:
-            config_path = "config.yml"
         
         try:
-            with open(config_path, 'r') as f:
-                config = yaml.safe_load(f)
-            logger.info(f"Configuration loaded from {config_path}")
-            return config
+            return load_config()
         except Exception as e:
             logger.error(f"Error loading configuration: {str(e)}")
-            logger.info("Using default configuration")
-            return {
-                'crawler': {
-                    'user_agent': "VIGIL Cybersecurity News Crawler/0.1",
-                    'timeout': 30,
-                    'delay': 1.5,
-                    'max_retries': 3,
-                    'max_depth': 2,
-                    'max_urls': 50
-                },
-                'storage': {
-                    'file_store_path': "data",
-                    'db_path': "data/vigil_data.db"
-                },
-                'model': {
-                    'path': None,  # Default to None, will be handled in __init__
-                    'vectorizer_path': None  # Default to None, will be handled in __init__
-                }
-            }
+            return {}
     
     def process_url(self, url: str) -> Tuple[bool, Dict]:
         """
