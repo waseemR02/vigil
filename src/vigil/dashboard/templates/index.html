@@ -1,0 +1,206 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="display-5 mb-4">Cybersecurity Dashboard</h1>
+        
+        {% if api_status == "disconnected" %}
+        <div class="alert alert-danger" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ api_error }}
+        </div>
+        {% elif api_status == "error" and api_error %}
+        <div class="alert alert-warning" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ api_error }}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4 gy-3">
+    <div class="col-md-4">
+        <div class="card bg-dark-card text-light border-danger h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-danger">Total Incidents</h6>
+                        <h2 class="display-4">{{ incidents_count }}</h2>
+                    </div>
+                    <i class="bi bi-exclamation-triangle text-danger display-4"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-dark-card text-light border-info h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-info">Sources</h6>
+                        <h2 class="display-4">{{ sources_count }}</h2>
+                    </div>
+                    <i class="bi bi-database text-info display-4"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-dark-card text-light border-warning h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-warning">Tags</h6>
+                        <h2 class="display-4">{{ tags_count }}</h2>
+                    </div>
+                    <i class="bi bi-tags text-warning display-4"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if api_status != "disconnected" %}
+<!-- Charts Row -->
+<div class="row mb-4 gy-3">
+    <div class="col-md-6">
+        <div class="card bg-dark-card text-light border-secondary h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Incidents by Source</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="incidentsBySourceChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card bg-dark-card text-light border-secondary h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Incidents Timeline</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="incidentsTimelineChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Incidents and Tag Cloud -->
+<div class="row gy-3">
+    <div class="col-md-8">
+        <div class="card bg-dark-card text-light border-secondary h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Recent Incidents</h5>
+                <a href="/incidents" class="btn btn-sm btn-outline-secondary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Source</th>
+                                <th>Date</th>
+                                <th>Tags</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if recent_incidents %}
+                                {% for incident in recent_incidents %}
+                                <tr>
+                                    <td>
+                                        <a href="/incidents/{{ incident.id }}" class="text-light">
+                                            {{ incident.title }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {% if incident.source %}
+                                        <span class="badge bg-info">{{ incident.source.name }}</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Unknown</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ incident.created_at|format_datetime }}</td>
+                                    <td>
+                                        {% for tag in incident.tags|default([]) %}
+                                        <span class="badge bg-warning text-dark">{{ tag.name }}</span>
+                                        {% endfor %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-4">
+                                        <span class="text-muted">No incidents available</span>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-dark-card text-light border-secondary h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Tag Cloud</h5>
+            </div>
+            <div class="card-body">
+                <div class="tag-cloud">
+                    {% for tag in tags %}
+                    <a href="/incidents?tag_name={{ tag.name }}" class="tag-item">
+                        <span class="badge bg-warning text-dark fs-6 mb-2">{{ tag.name }}</span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<!-- API Disconnected Message -->
+<div class="row">
+    <div class="col-12">
+        <div class="card bg-dark-card text-light border-danger">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-exclamation-circle text-danger display-1 mb-4"></i>
+                <h3 class="mb-3">API Connection Issue</h3>
+                <p class="lead">The dashboard cannot connect to the API server.</p>
+                <div class="mt-4">
+                    <p>Please make sure the API server is running by using this command:</p>
+                    <div class="bg-dark p-3 rounded">
+                        <code>python run.py --component api</code>
+                    </div>
+                    <button class="btn btn-outline-primary mt-4" onclick="window.location.reload()">
+                        <i class="bi bi-arrow-clockwise me-2"></i> Try Again
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if api_status != "disconnected" %}
+<script src="/static/js/charts.js"></script>
+<script>
+    // Prepare data for charts
+    const sourcesData = {{ sources|tojson }};
+    const recentIncidents = {{ recent_incidents|tojson }};
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize charts
+        if (document.getElementById('incidentsBySourceChart') && sourcesData.length > 0) {
+            initIncidentsBySourceChart('incidentsBySourceChart', sourcesData, recentIncidents);
+        }
+        
+        if (document.getElementById('incidentsTimelineChart') && recentIncidents.length > 0) {
+            initIncidentsTimelineChart('incidentsTimelineChart', recentIncidents);
+        }
+    });
+</script>
+{% endif %}
+{% endblock %}

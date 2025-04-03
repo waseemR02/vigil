@@ -1,0 +1,62 @@
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.footer {
+    margin-top: auto;
+}
+
+/* Dark theme customization */
+.bg-dark-card {
+    background-color: #2a2a2a;
+}
+
+.table-dark {
+    background-color: #2a2a2a;
+}
+
+.table-dark th, 
+.table-dark td {
+    border-color: #444;
+}
+
+.page-link {
+    color: #adb5bd;
+}
+
+.page-link:hover {
+    color: #fff;
+    background-color: #343a40;
+}
+
+/* Tag cloud styling */
+.tag-cloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.tag-item:hover {
+    text-decoration: none;
+    opacity: 0.8;
+}
+
+/* Charts */
+canvas {
+    width: 100% !important;
+}
+
+/* Navigation active state */
+.navbar-dark .navbar-nav .nav-link.active {
+    color: #dc3545;
+    font-weight: 500;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .display-4 {
+        font-size: 2.5rem;
+    }
+}

@@ -20,6 +20,10 @@ dependencies = [
     "seaborn>=0.13.2",
     "schedule>=1.2.2",
     "sqlalchemy>=2.0.40",
+    "fastapi>=0.115.12",
+    "uvicorn>=0.34.0",
+    "httpx>=0.28.1",
+    "jinja2>=3.1.6",
 ]
 
 [project.scripts]
@@ -32,7 +36,8 @@ vigil-classify = "vigil.tools.classify:main"
 vigil-visualize = "vigil.tools.visualize:main"
 vigil-workflow = "vigil.scripts.workflow:main"
 vigil-monitor = "vigil.scripts.monitor:main"
-vigil-scheduler = "vigil.scripts.scheduler:main"  # Add scheduler script entry
+vigil-scheduler = "vigil.scripts.scheduler:main"
+vigil-ui = "vigil.scripts.ui:main"
 
 [build-system]
 requires = ["hatchling"]
