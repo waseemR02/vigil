@@ -46,19 +46,31 @@ scheduler:
   db_path: "database-workflow/scheduler.db"  # Separate database for scheduler
   job_store_path: "database-workflow/jobs.json"  # Path to store job information (legacy)
   jobs:
-    # - id: "daily-threatpost"
-    #   url: "https://threatpost.com/"
-    #   interval_minutes: 1440  # Daily
-    #   max_urls: 25
-    # - id: "hourly-krebsonsecurity"
-    #   url: "https://krebsonsecurity.com/"
-    #   interval_minutes: 60  # Hourly
-    #   max_urls: 15
-    # - id: "weekly-bleeping"
-    #   url: "https://www.bleepingcomputer.com/"
-    #   interval_minutes: 10080  # Weekly
-    #   max_urls: 50
+    - id: "minutes-thehackernews"
+      url: "https://thehackernews.com/"
+      interval_minutes: 10  # every 10 mins
+      max_urls: 50    
+    - id: "minutes-gbhackers"
+      url: "https://gbhackers.com/"
+      interval_minutes: 10  # every 10 mins
+      max_urls: 50
+    - id: "minutes-securityledger"
+      url: "https://securityledger.com/"
+      interval_minutes: 10  # every 10 mins
+      max_urls: 50
+    - id: "minutes-itsecurityguru"
+      url: "https://www.itsecurityguru.org/"
+      interval_minutes: 10  # every 10 mins
+      max_urls: 50
+    - id: "minutes-securityboulevard"
+      url: "https://securityboulevard.com/security-creators-network/"
+      interval_minutes: 10  # every 10 mins
+      max_urls: 50
     - id: "minutes-krebsonsecurity"
       url: "https://krebsonsecurity.com/"
-      interval_minutes: 2  # every 2 mins
-      max_urls: 100
+      interval_minutes: 10  # every 10 mins
+      max_urls: 50
+    - id: "minutes-bleeping"
+      url: "https://www.bleepingcomputer.com/"
+      interval_minutes: 5  # Weekly
+      max_urls: 50
