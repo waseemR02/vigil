@@ -1,4 +1,5 @@
 from sqlalchemy import and_
+from sqlalchemy.orm import joinedload
 from datetime import datetime
 from .connection import get_session
 from .models import Incident, Source, Tag
@@ -37,7 +38,11 @@ def get_incident(incident_id):
     """Retrieve an incident by ID."""
     session = get_session()
     try:
-        return session.query(Incident).filter(Incident.id == incident_id).first()
+        # Use joinedload to eagerly load relationships
+        return session.query(Incident).options(
+            joinedload(Incident.source),
+            joinedload(Incident.tags)
+        ).filter(Incident.id == incident_id).first()
     finally:
         session.close()
 
@@ -100,7 +105,11 @@ def list_incidents(source_id=None, tag_name=None, page=1, per_page=20):
     """List incidents with optional filtering and pagination."""
     session = get_session()
     try:
-        query = session.query(Incident)
+        # Start with a query that eagerly loads relationships
+        query = session.query(Incident).options(
+            joinedload(Incident.source),
+            joinedload(Incident.tags)
+        )
         
         # Apply filters
         filters = []
