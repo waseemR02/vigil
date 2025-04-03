@@ -7,3 +7,31 @@ logging:
   file_overwrite: true   # Overwrite log file on startup (true) or append (false)
   console: true
   console_level: INFO
+
+crawler:
+  user_agent: "VIGIL Cybersecurity News Crawler/0.1"
+  timeout: 30
+  delay: 1.5
+  max_retries: 3
+  max_depth: 2
+  max_urls: 50
+  output_dir: "crawled_data"
+  start_urls:
+    - "https://thehackernews.com/"
+    - "https://gbhackers.com/"
+    - "https://securityledger.com/"
+    - "https://www.itsecurityguru.org/"
+    - "https://www.bleepingcomputer.com/"
+    - "https://securityboulevard.com/security-creators-network/"
+    - "https://krebsonsecurity.com/"
+  allowed_domains:
+    - "thehackernews.com"
+    - "www.bleepingcomputer.com"
+    - "krebsonsecurity.com"
+
+storage:
+  file_store_path: "data"
+  db_path: "data/vigil_data.db"
+  auto_save: true    # Automatically save crawled content to the database
+  auto_export: true # Automatically export data after crawling
+  export_format: "json"
