@@ -1,0 +1,159 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="display-5 mb-4">Incidents</h1>
+    </div>
+</div>
+
+<!-- Filter Controls -->
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="card bg-dark-card text-light border-secondary">
+            <div class="card-body">
+                <form id="filter-form" method="get" class="row gx-3 gy-2 align-items-center">
+                    <div class="col-md-4">
+                        <label for="source-filter" class="form-label">Source</label>
+                        <select id="source-filter" name="source_id" class="form-select bg-dark text-light border-secondary">
+                            <option value="">All Sources</option>
+                            {% for source in sources %}
+                            <option value="{{ source.id }}" {% if selected_source_id == source.id %}selected{% endif %}>
+                                {{ source.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="tag-filter" class="form-label">Tag</label>
+                        <select id="tag-filter" name="tag_name" class="form-select bg-dark text-light border-secondary">
+                            <option value="">All Tags</option>
+                            {% for tag in tags %}
+                            <option value="{{ tag.name }}" {% if selected_tag_name == tag.name %}selected{% endif %}>
+                                {{ tag.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4 align-self-end">
+                        <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Incidents Table -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card bg-dark-card text-light border-secondary">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Title</th>
+                                <th>Source</th>
+                                <th>Date</th>
+                                <th>Tags</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for incident in incidents %}
+                            <tr>
+                                <td>{{ incident.id }}</td>
+                                <td>
+                                    <a href="/incidents/{{ incident.id }}" class="text-light">
+                                        {{ incident.title }}
+                                    </a>
+                                </td>
+                                <td>
+                                    {% if incident.source %}
+                                    <span class="badge bg-info">{{ incident.source.name }}</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Unknown</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ incident.created_at|format_datetime("%Y-%m-%d") }}</td>
+                                <td>
+                                    {% for tag in incident.tags %}
+                                    <a href="/incidents?tag_name={{ tag.name }}" class="text-decoration-none">
+                                        <span class="badge bg-warning text-dark">{{ tag.name }}</span>
+                                    </a>
+                                    {% endfor %}
+                                </td>
+                                <td>
+                                    <a href="/incidents/{{ incident.id }}" class="btn btn-sm btn-outline-info">
+                                        <i class="bi bi-eye"></i> View
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if pagination.total_pages > 1 %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="Incidents pagination">
+            <ul class="pagination justify-content-center">
+                <li class="page-item {% if pagination.current_page == 1 %}disabled{% endif %}">
+                    <a class="page-link bg-dark text-light border-secondary" 
+                       href="?page=1&source_id={{ selected_source_id or '' }}&tag_name={{ selected_tag_name or '' }}">
+                        First
+                    </a>
+                </li>
+                <li class="page-item {% if pagination.current_page == 1 %}disabled{% endif %}">
+                    <a class="page-link bg-dark text-light border-secondary" 
+                       href="?page={{ pagination.current_page - 1 }}&source_id={{ selected_source_id or '' }}&tag_name={{ selected_tag_name or '' }}">
+                        Previous
+                    </a>
+                </li>
+                
+                {% set start_page = pagination.current_page - 2 %}
+                {% if start_page < 1 %}{% set start_page = 1 %}{% endif %}
+                
+                {% set end_page = pagination.current_page + 2 %}
+                {% if end_page > pagination.total_pages %}{% set end_page = pagination.total_pages %}{% endif %}
+                
+                {% for page_num in range(start_page, end_page + 1) %}
+                <li class="page-item {% if page_num == pagination.current_page %}active{% endif %}">
+                    <a class="page-link {% if page_num == pagination.current_page %}bg-danger border-danger{% else %}bg-dark text-light border-secondary{% endif %}" 
+                       href="?page={{ page_num }}&source_id={{ selected_source_id or '' }}&tag_name={{ selected_tag_name or '' }}">
+                        {{ page_num }}
+                    </a>
+                </li>
+                {% endfor %}
+                
+                <li class="page-item {% if pagination.current_page == pagination.total_pages %}disabled{% endif %}">
+                    <a class="page-link bg-dark text-light border-secondary" 
+                       href="?page={{ pagination.current_page + 1 }}&source_id={{ selected_source_id or '' }}&tag_name={{ selected_tag_name or '' }}">
+                        Next
+                    </a>
+                </li>
+                <li class="page-item {% if pagination.current_page == pagination.total_pages %}disabled{% endif %}">
+                    <a class="page-link bg-dark text-light border-secondary" 
+                       href="?page={{ pagination.total_pages }}&source_id={{ selected_source_id or '' }}&tag_name={{ selected_tag_name or '' }}">
+                        Last
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        <p class="text-center text-muted">
+            Showing {{ (pagination.current_page - 1) * pagination.per_page + 1 }} 
+            to {{ min(pagination.current_page * pagination.per_page, pagination.total_items) }} 
+            of {{ pagination.total_items }} incidents
+        </p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
