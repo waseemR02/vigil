@@ -108,13 +108,13 @@
             <ul class="pagination justify-content-center">
                 <li class="page-item {% if pagination.current_page == 1 %}disabled{% endif %}">
                     <a class="page-link bg-dark text-light border-secondary" 
-                       href="?page=1&source_id={{ selected_source_id or '' }}&tag_name={{ selected_tag_name or '' }}">
+                       href="?page=1{% if selected_source_id %}&source_id={{ selected_source_id }}{% endif %}{% if selected_tag_name %}&tag_name={{ selected_tag_name }}{% endif %}">
                         First
                     </a>
                 </li>
                 <li class="page-item {% if pagination.current_page == 1 %}disabled{% endif %}">
                     <a class="page-link bg-dark text-light border-secondary" 
-                       href="?page={{ pagination.current_page - 1 }}&source_id={{ selected_source_id or '' }}&tag_name={{ selected_tag_name or '' }}">
+                       href="?page={{ pagination.current_page - 1 }}{% if selected_source_id %}&source_id={{ selected_source_id }}{% endif %}{% if selected_tag_name %}&tag_name={{ selected_tag_name }}{% endif %}">
                         Previous
                     </a>
                 </li>
@@ -128,7 +128,7 @@
                 {% for page_num in range(start_page, end_page + 1) %}
                 <li class="page-item {% if page_num == pagination.current_page %}active{% endif %}">
                     <a class="page-link {% if page_num == pagination.current_page %}bg-danger border-danger{% else %}bg-dark text-light border-secondary{% endif %}" 
-                       href="?page={{ page_num }}&source_id={{ selected_source_id or '' }}&tag_name={{ selected_tag_name or '' }}">
+                       href="?page={{ page_num }}{% if selected_source_id %}&source_id={{ selected_source_id }}{% endif %}{% if selected_tag_name %}&tag_name={{ selected_tag_name }}{% endif %}">
                         {{ page_num }}
                     </a>
                 </li>
@@ -136,13 +136,13 @@
                 
                 <li class="page-item {% if pagination.current_page == pagination.total_pages %}disabled{% endif %}">
                     <a class="page-link bg-dark text-light border-secondary" 
-                       href="?page={{ pagination.current_page + 1 }}&source_id={{ selected_source_id or '' }}&tag_name={{ selected_tag_name or '' }}">
+                       href="?page={{ pagination.current_page + 1 }}{% if selected_source_id %}&source_id={{ selected_source_id }}{% endif %}{% if selected_tag_name %}&tag_name={{ selected_tag_name }}{% endif %}">
                         Next
                     </a>
                 </li>
                 <li class="page-item {% if pagination.current_page == pagination.total_pages %}disabled{% endif %}">
                     <a class="page-link bg-dark text-light border-secondary" 
-                       href="?page={{ pagination.total_pages }}&source_id={{ selected_source_id or '' }}&tag_name={{ selected_tag_name or '' }}">
+                       href="?page={{ pagination.total_pages }}{% if selected_source_id %}&source_id={{ selected_source_id }}{% endif %}{% if selected_tag_name %}&tag_name={{ selected_tag_name }}{% endif %}">
                         Last
                     </a>
                 </li>

@@ -152,17 +152,23 @@ async def incidents_list(
     request: Request,
     page: int = 1,
     per_page: int = 20,
-    source_id: Optional[int] = None,
+    source_id: Optional[str] = None,  # Changed from int to str to catch empty strings
     tag_name: Optional[str] = None,
     client: httpx.AsyncClient = Depends(get_api_client)
 ):
     """Render the incidents list page."""
     try:
-        # Build query params
+        # Build query params - only include non-empty parameters
         params = {"page": page, "per_page": per_page}
-        if source_id:
-            params["source_id"] = source_id
-        if tag_name:
+        if source_id and source_id.strip():
+            try:
+                # Convert to integer for the API
+                params["source_id"] = int(source_id)
+            except (ValueError, TypeError):
+                logger.warning(f"Invalid source_id parameter: {source_id}")
+                # Don't include if it's not a valid integer
+        
+        if tag_name and tag_name.strip():
             params["tag_name"] = tag_name
         
         # Fetch incidents with pagination
@@ -189,7 +195,7 @@ async def incidents_list(
                 },
                 "sources": sources,
                 "tags": tags,
-                "selected_source_id": source_id,
+                "selected_source_id": int(source_id) if source_id and source_id.strip() and source_id.isdigit() else None,
                 "selected_tag_name": tag_name,
                 "page_title": "Incidents"
             }
