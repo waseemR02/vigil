@@ -6,11 +6,9 @@ statistics, and generates HTML reports with the results.
 """
 
 import argparse
-import logging
 import os
 import sys
 import webbrowser
-from pathlib import Path
 
 # Add parent directory to sys.path if running as script
 if __name__ == "__main__" and __package__ is None:

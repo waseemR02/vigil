@@ -8,10 +8,9 @@ dataset statistics, model performance, and feature importance.
 import base64
 import datetime
 import io
-import json
 import logging
 import os
-from typing import Dict, List, Tuple, Any, Optional, Union
+from typing import Dict, List, Tuple, Any
 
 import matplotlib
 matplotlib.use('Agg')  # Use non-interactive backend
@@ -550,7 +549,7 @@ def generate_model_report(model_path: str, dataset_path: str, output_dir: str) -
     Returns:
         Path to the HTML report
     """
-    from vigil.model import ContentPredictor, ModelTrainer
+    from vigil.model import ModelTrainer
     from vigil.model.data_prep import DatasetPreparer
     
     try:
@@ -565,7 +564,7 @@ def generate_model_report(model_path: str, dataset_path: str, output_dir: str) -
             logger.error(f"Failed to load dataset from {dataset_path}")
             return ""
         
-        X_train, X_test = dataset.get('X_train'), dataset.get('X_test')
+        _X_train, X_test = dataset.get('X_train'), dataset.get('X_test')
         y_train, y_test = dataset.get('y_train'), dataset.get('y_test')
         feature_names = dataset.get('feature_names', [])
         

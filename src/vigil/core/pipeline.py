@@ -8,7 +8,7 @@ import yaml
 import os
 from datetime import datetime
 from urllib.parse import urlparse
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, Tuple
 
 from bs4 import BeautifulSoup
 import requests
@@ -17,7 +17,6 @@ from vigil.data_collection.crawler import Crawler
 from vigil.data_collection.content_extractor import ContentExtractor
 from vigil.model.training import ContentPredictor
 from vigil.database.connection import init_db
-from vigil.database.models import Incident, Source, Tag
 from vigil.database import queries
 
 # Set up logging

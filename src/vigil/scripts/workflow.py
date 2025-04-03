@@ -7,7 +7,6 @@ import logging
 import json
 import os
 import time
-from datetime import datetime
 
 from vigil.core.pipeline import Pipeline
 

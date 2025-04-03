@@ -6,11 +6,9 @@ extracts features, and saves the prepared dataset.
 """
 
 import argparse
-import logging
 import os
 import sys
 import time
-from pathlib import Path
 
 # Add parent directory to sys.path if running as script
 if __name__ == "__main__" and __package__ is None:
@@ -19,7 +17,7 @@ if __name__ == "__main__" and __package__ is None:
 
 from vigil.config import load_config
 from vigil.logging import setup_logging
-from vigil.model import prepare_dataset, TextPreprocessor, DataLoader, FeatureExtractor, DatasetPreparer
+from vigil.model import prepare_dataset
 
 
 def parse_arguments():

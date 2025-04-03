@@ -6,11 +6,9 @@ whether articles are relevant to cybersecurity incidents.
 """
 
 import argparse
-import logging
 import os
 import sys
 import json
-from pathlib import Path
 
 # Add parent directory to sys.path if running as script
 if __name__ == "__main__" and __package__ is None:
@@ -19,7 +17,7 @@ if __name__ == "__main__" and __package__ is None:
 
 from vigil.config import load_config
 from vigil.logging import setup_logging
-from vigil.model import train_model, ContentPredictor
+from vigil.model import train_model
 
 
 def parse_arguments():

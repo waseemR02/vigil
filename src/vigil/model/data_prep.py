@@ -13,8 +13,7 @@ import pickle
 import re
 import sqlite3
 from datetime import datetime
-from pathlib import Path
-from typing import Dict, List, Tuple, Union, Any, Optional
+from typing import Dict, List, Tuple, Any, Optional
 
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer

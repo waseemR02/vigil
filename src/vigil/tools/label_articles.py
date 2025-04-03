@@ -8,13 +8,11 @@ import logging
 import os
 import pickle
 import sys
-import time
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any, Tuple
 
 from rich.console import Console
-from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.prompt import Prompt, Confirm
 from rich.table import Table
@@ -192,7 +190,7 @@ class LabelingTool:
             header.add_row("Publish Date", article['publish_date'])
         
         # Display the header
-        self.console.print(Panel(header, title=f"Article Information", border_style="blue"))
+        self.console.print(Panel(header, title="Article Information", border_style="blue"))
         
         # Display the title
         self.console.print(Panel(article['title'], title="Title", border_style="green", expand=False))

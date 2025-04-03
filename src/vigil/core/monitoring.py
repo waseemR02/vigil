@@ -6,14 +6,11 @@ import logging
 import time
 import threading
 from datetime import datetime
-import os
 import json
-from typing import Dict, List
 
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
-from rich.text import Text
 
 from vigil.database import queries
 from vigil.database.connection import get_engine
@@ -99,7 +96,6 @@ class SystemMonitor:
         
         # Crawler and pipeline are marked as up if their modules can be imported
         try:
-            from vigil.data_collection.crawler import Crawler
             self.components["crawler"] = {
                 "status": "up",
                 "last_check": datetime.now()
@@ -112,7 +108,6 @@ class SystemMonitor:
             }
         
         try:
-            from vigil.core.pipeline import Pipeline
             self.components["pipeline"] = {
                 "status": "up",
                 "last_check": datetime.now()
