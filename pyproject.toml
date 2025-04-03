@@ -18,6 +18,8 @@ dependencies = [
     "scipy>=1.10.0",
     "matplotlib>=3.10.1",
     "seaborn>=0.13.2",
+    "schedule>=1.2.2",
+    "sqlalchemy>=2.0.40",
 ]
 
 [project.scripts]
@@ -28,6 +30,8 @@ vigil-prep = "vigil.tools.preprocess:main"
 vigil-train = "vigil.tools.train_model:main"
 vigil-classify = "vigil.tools.classify:main"
 vigil-visualize = "vigil.tools.visualize:main"
+vigil-workflow = "vigil.scripts.workflow:main"
+vigil-monitor = "vigil.scripts.monitor:main"
 
 [build-system]
 requires = ["hatchling"]
