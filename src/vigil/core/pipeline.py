@@ -6,8 +6,9 @@ import logging
 import time
 import os
 from datetime import datetime
-from urllib.parse import urlparse
-from typing import Dict, Tuple
+from collections import deque
+from urllib.parse import urlparse, urlunparse, parse_qs, urlencode
+from typing import Dict, Tuple, List, Set, Optional
 
 from bs4 import BeautifulSoup
 import requests
@@ -18,6 +19,7 @@ from vigil.data_collection.content_extractor import ContentExtractor
 from vigil.model.training import ContentPredictor
 from vigil.database.connection import init_db
 from vigil.database import queries
+from vigil.database import url_tracking  # Import the new module
 
 # Set up logging
 logger = logging.getLogger("vigil.core.pipeline")
@@ -95,6 +97,9 @@ class Pipeline:
         self.queued_urls = set()  # Keep track of URLs already in the queue
         self.url_queue = []       # The actual queue
         
+        # Create URL tracking table if it doesn't exist
+        url_tracking.init_url_tracking_table()
+        
         logger.info("Pipeline initialized")
     
     def _load_config(self):
@@ -106,6 +111,69 @@ class Pipeline:
             logger.error(f"Error loading configuration: {str(e)}")
             return {}
     
+    def _normalize_url(self, url: str) -> str:
+        """
+        Normalize URL by removing fragments and non-essential query parameters.
+        
+        This prevents processing duplicate content from URLs like:
+        - https://example.com/page#fragment
+        - https://example.com/page?replytocom=123#respond
+        
+        Args:
+            url: The URL to normalize
+            
+        Returns:
+            Normalized URL without fragments and with only essential query params
+        """
+        try:
+            # Parse the URL
+            parsed = urlparse(url)
+            
+            # Get query parameters
+            query_params = parse_qs(parsed.query)
+            
+            # Filter out non-essential query parameters that don't change main content
+            # For example, remove 'replytocom' which is common in CMS comment systems
+            non_essential_params = {'replytocom', 'ref', 'utm_source', 'utm_medium', 
+                                    'utm_campaign', 'utm_term', 'utm_content'}
+            
+            filtered_params = {k: v for k, v in query_params.items() 
+                              if k.lower() not in non_essential_params}
+            
+            # Rebuild query string
+            query_string = urlencode(filtered_params, doseq=True) if filtered_params else ''
+            
+            # Rebuild URL without fragment
+            normalized = urlunparse((
+                parsed.scheme,
+                parsed.netloc,
+                parsed.path,
+                parsed.params,
+                query_string,
+                ''  # No fragment
+            ))
+            
+            return normalized
+        except Exception as e:
+            logger.warning(f"Error normalizing URL {url}: {str(e)}")
+            return url
+    
+    def _is_url_processed(self, url: str) -> bool:
+        """Check if a URL has been processed before."""
+        # Normalize the URL before checking
+        normalized_url = self._normalize_url(url)
+        return url_tracking.is_url_processed(normalized_url)
+    
+    def _mark_url_processed(self, url: str):
+        """Mark a URL as processed in the database."""
+        # Normalize the URL before marking as processed
+        normalized_url = self._normalize_url(url)
+        url_tracking.mark_url_processed(normalized_url)
+    
+    def _get_processed_urls(self, domain: str = None, limit: int = None) -> List[str]:
+        """Get list of processed URLs, optionally filtered by domain."""
+        return url_tracking.get_processed_urls(domain, limit)
+    
     def process_url(self, url: str) -> Tuple[bool, Dict]:
         """
         Process a single URL through the pipeline:
@@ -114,6 +182,9 @@ class Pipeline:
         3. Store relevant content in the database
         4. Return processing status and metadata
         """
+        # Normalize the URL before processing
+        url = self._normalize_url(url)
+        
         start_time = time.time()
         result = {
             "url": url,
@@ -125,6 +196,9 @@ class Pipeline:
         try:
             logger.info(f"Processing URL: {url}")
             self.visited_urls.add(url)
+            
+            # Mark URL as processed in persistent storage
+            self._mark_url_processed(url)
             
             # 1. Fetch content
             content, status = self.crawler.fetch_url(url)
@@ -210,8 +284,11 @@ class Pipeline:
             href = anchor['href']
             full_url = requests.compat.urljoin(base_url, href)
             
+            # Normalize the URL
+            normalized_url = self._normalize_url(full_url)
+            
             # Parse URL to clean it
-            parsed = urlparse(full_url)
+            parsed = urlparse(normalized_url)
             if not parsed.scheme or not parsed.netloc:
                 continue
                 
@@ -219,11 +296,15 @@ class Pipeline:
             if allowed_domains and parsed.netloc not in allowed_domains:
                 continue
                 
-            # Skip already visited or queued URLs
-            if full_url in self.visited_urls or full_url in self.queued_urls:
+            # Skip already visited or queued URLs in this session
+            if normalized_url in self.visited_urls or normalized_url in self.queued_urls:
                 continue
                 
-            links.append(full_url)
+            # Skip URLs that were processed in previous sessions
+            if self._is_url_processed(normalized_url):
+                continue
+                
+            links.append(normalized_url)
         
         return links
     
@@ -252,14 +333,20 @@ class Pipeline:
         # Prioritize URLs from the same domain
         prioritized_urls = self._prioritize_urls(urls, seed_domain)
         
-        # Add URLs to the queue if not already visited or queued
+        # Add URLs to the queue if not already visited, queued, or processed in previous runs
         added_count = 0
         for url in prioritized_urls:
-            if url not in self.visited_urls and url not in self.queued_urls:
+            # Make sure we're using the normalized URL
+            normalized_url = self._normalize_url(url)
+            
+            if (normalized_url not in self.visited_urls and 
+                normalized_url not in self.queued_urls and 
+                not self._is_url_processed(normalized_url)):
+                
                 # Only add if we're still under the limit
                 if len(self.url_queue) < max_queue_size:
-                    self.url_queue.append(url)
-                    self.queued_urls.add(url)
+                    self.url_queue.append(normalized_url)
+                    self.queued_urls.add(normalized_url)
                     added_count += 1
                 else:
                     break
@@ -276,84 +363,270 @@ class Pipeline:
         # Create new source if not found
         return queries.create_source(name, url)
     
+    def _find_alternative_urls(self, seed_url: str, max_attempts: int = 5) -> List[str]:
+        """
+        Find alternative URLs to crawl if the seed URL has already been processed.
+        
+        Args:
+            seed_url: The original seed URL
+            max_attempts: Maximum number of URLs to try to fetch
+            
+        Returns:
+            List of alternative URLs that haven't been processed yet
+        """
+        logger.info(f"Finding alternative start URLs for {seed_url}")
+        
+        # Extract domain from seed URL
+        seed_domain = urlparse(seed_url).netloc
+        
+        # Try to fetch the seed URL to get links without processing it
+        try:
+            content, status = self.crawler.fetch_url(seed_url)
+            if content and status == 200:
+                soup = BeautifulSoup(content, 'html.parser')
+                all_links = []
+                
+                # Extract all links from the page
+                for anchor in soup.find_all('a', href=True):
+                    href = anchor['href']
+                    full_url = requests.compat.urljoin(seed_url, href)
+                    
+                    # Parse URL to clean it
+                    parsed = urlparse(full_url)
+                    if not parsed.scheme or not parsed.netloc:
+                        continue
+                    
+                    # Filter to same domain
+                    if parsed.netloc != seed_domain:
+                        continue
+                        
+                    all_links.append(full_url)
+                
+                # Filter out already processed URLs
+                new_urls = []
+                for link in all_links:
+                    if not self._is_url_processed(link):
+                        new_urls.append(link)
+                        if len(new_urls) >= max_attempts:
+                            break
+                
+                if new_urls:
+                    logger.info(f"Found {len(new_urls)} alternative URLs to process")
+                    return new_urls
+                else:
+                    logger.warning(f"All links from {seed_url} have already been processed")
+            else:
+                logger.warning(f"Could not fetch {seed_url} to find alternative URLs")
+        
+        except Exception as e:
+            logger.error(f"Error finding alternative URLs: {str(e)}")
+        
+        return []
+    
+    def _run_bfs_crawl(self, seed_url: str, max_urls: int = 50, max_depth: int = 3, max_queue_size: int = 5000) -> Dict:
+        """
+        Run a breadth-first crawler starting from the seed URL.
+        Uses URL normalization and tracking to avoid duplicates.
+        
+        Args:
+            seed_url: The starting URL
+            max_urls: Maximum number of URLs to process
+            max_depth: Maximum crawl depth
+            max_queue_size: Maximum size of the BFS queue to prevent memory issues
+            
+        Returns:
+            Dictionary with crawl statistics
+        """
+        seed_domain = urlparse(seed_url).netloc
+        queue = deque([(seed_url, 0)])  # (url, depth)
+        visited = set()
+        processed_count = 0
+        relevant_count = 0
+        failed_count = 0
+        skipped_count = 0
+        
+        logger.info(f"Starting BFS crawl from {seed_url} with max depth {max_depth}")
+        start_time = time.time()
+        
+        crawl_stats = {
+            "seed_url": seed_url,
+            "start_time": datetime.now().isoformat(),
+            "processed": 0,
+            "relevant": 0,
+            "failed": 0
+        }
+        
+        while queue and processed_count < max_urls:
+            current_url, depth = queue.popleft()
+            
+            # Normalize URL
+            current_url = self._normalize_url(current_url)
+            
+            # Skip if already visited in this session or previously processed
+            if current_url in visited or self._is_url_processed(current_url):
+                continue
+                
+            # Mark as visited for this session
+            visited.add(current_url)
+            
+            # Process the URL
+            success, result = self.process_url(current_url)
+            processed_count += 1
+            
+            if success:
+                # If relevant, collect new URLs
+                if result.get("relevant", False):
+                    relevant_count += 1
+                    
+                    # If we're not at max depth and the content was successfully processed,
+                    # extract and queue new URLs
+                    if depth < max_depth and "new_urls_list" in result:
+                        new_urls = result["new_urls_list"]
+                        
+                        # Filter and prioritize URLs from the same domain
+                        prioritized_urls = self._prioritize_urls(new_urls, seed_domain)
+                        
+                        # Check if adding more URLs would exceed the queue size limit
+                        remaining_capacity = max_queue_size - len(queue)
+                        
+                        if remaining_capacity <= 0:
+                            logger.warning(f"Queue size limit ({max_queue_size}) reached. Skipping {len(prioritized_urls)} new URLs.")
+                            skipped_count += len(prioritized_urls)
+                        else:
+                            # Add URLs to the queue up to the remaining capacity
+                            urls_to_add = prioritized_urls[:remaining_capacity]
+                            skipped_count += len(prioritized_urls) - len(urls_to_add)
+                            
+                            # Add URLs to the queue
+                            for url in urls_to_add:
+                                # Normalize URL
+                                normalized_url = self._normalize_url(url)
+                                
+                                # Skip already visited or processed URLs
+                                if (normalized_url not in visited and 
+                                    not self._is_url_processed(normalized_url)):
+                                    queue.append((normalized_url, depth + 1))
+            else:
+                failed_count += 1
+                
+            logger.info(f"Processed {processed_count}/{max_urls} URLs. " 
+                      f"Queue size: {len(queue)}, "
+                      f"Relevant: {relevant_count}, Failed: {failed_count}")
+        
+        # Collect unprocessed URLs for future runs
+        unprocessed_urls = []
+        for url, _ in queue:
+            normalized_url = self._normalize_url(url)
+            if normalized_url not in visited:
+                unprocessed_urls.append(normalized_url)
+                
+        # Save unprocessed URLs for future runs
+        if unprocessed_urls:
+            url_tracking.save_url_queue(seed_domain, unprocessed_urls)
+            logger.info(f"Saved {len(unprocessed_urls)} URLs for future runs")
+            
+        duration = time.time() - start_time
+        
+        crawl_stats.update({
+            "processed": processed_count,
+            "relevant": relevant_count,
+            "failed": failed_count,
+            "skipped": skipped_count,  # Add count of skipped URLs due to queue limit
+            "duration_seconds": duration,
+            "end_time": datetime.now().isoformat(),
+            "saved_urls": len(unprocessed_urls)
+        })
+        
+        return crawl_stats
+    
     def run_workflow(self, seed_url: str, max_urls: int = 50) -> Dict:
         """
         Run a complete workflow starting from a seed URL.
-        Process URLs in a breadth-first manner up to max_urls.
+        Process URLs using breadth-first search up to max_urls.
         """
         workflow_start = time.time()
-        
-        # Reset tracking
-        self.visited_urls = set()
-        self.queued_urls = set()
-        self.url_queue = [seed_url]
-        self.queued_urls.add(seed_url)
         
         # Get seed domain for prioritization
         seed_domain = urlparse(seed_url).netloc
         
-        # Statistics
-        processed_count = 0
-        relevant_count = 0
-        failed_count = 0
+        # Reset tracking
+        self.visited_urls = set()
+        self.queued_urls = set()
+        self.url_queue = []
         
+        # Check if the seed URL has already been processed
+        seed_already_processed = self._is_url_processed(seed_url)
+        
+        # Where to start the crawl from
+        start_urls = []
+        
+        if seed_already_processed:
+            logger.info(f"Seed URL {seed_url} has already been processed")
+            
+            # Try to get saved URLs from previous runs first
+            saved_urls = url_tracking.get_url_queue(seed_domain)
+            
+            if saved_urls:
+                # Filter out any URLs that have been processed since they were saved
+                unprocessed_urls = [url for url in saved_urls if not self._is_url_processed(url)]
+                
+                if unprocessed_urls:
+                    logger.info(f"Using {len(unprocessed_urls)} URLs from saved queue")
+                    start_urls = unprocessed_urls
+                else:
+                    logger.warning("All saved URLs have been processed since they were saved")
+            
+            # If we have no URLs yet, try to find alternative URLs
+            if not start_urls:
+                logger.info("Looking for alternative URLs to process")
+                alternative_urls = self._find_alternative_urls(seed_url)
+                
+                if alternative_urls:
+                    logger.info(f"Found {len(alternative_urls)} alternative URLs to process")
+                    start_urls = alternative_urls
+                else:
+                    logger.warning("No alternative URLs found, ending workflow run")
+        else:
+            # Seed URL not processed before, use it as start
+            start_urls = [seed_url]
+        
+        # Prepare workflow stats
         workflow_stats = {
             "seed_url": seed_url,
             "start_time": datetime.now().isoformat(),
             "urls_processed": 0,
             "relevant_found": 0,
-            "failed": 0,
-            "queue_peak": 1
+            "failed": 0
         }
         
-        logger.info(f"Starting workflow with seed URL: {seed_url}")
+        # If we have no URLs to process, return early
+        if not start_urls:
+            logger.warning("No URLs to process")
+            workflow_stats["urls_processed"] = 0
+            workflow_stats["duration_seconds"] = time.time() - workflow_start
+            workflow_stats["end_time"] = datetime.now().isoformat()
+            workflow_stats["status"] = "no_urls"
+            return workflow_stats
         
-        while self.url_queue and processed_count < max_urls:
-            current_url = self.url_queue.pop(0)
-            self.queued_urls.remove(current_url)  # Remove from queued set
-            
-            if current_url in self.visited_urls:
-                continue
-                
-            success, result = self.process_url(current_url)
-            processed_count += 1
-            
-            if success:
-                if result.get("relevant", False):
-                    relevant_count += 1
-                    
-                    # Add new URLs to the queue with prioritization and deduplication
-                    if "new_urls_list" in result:
-                        # Limit queue size to a reasonable number to prevent explosion
-                        max_queue_size = self.config.get('crawler', {}).get('max_queue_size', 1000)
-                        added = self._add_to_queue(result["new_urls_list"], seed_domain, max_queue_size)
-                        if added > 0:
-                            logger.debug(f"Added {added} new URLs to queue (total queue size: {len(self.url_queue)})")
-                        
-                        # Update the peak queue size for reporting
-                        workflow_stats["queue_peak"] = max(workflow_stats["queue_peak"], len(self.url_queue))
-            else:
-                failed_count += 1
-            
-            logger.info(f"Processed {processed_count}/{max_urls} URLs. " 
-                      f"Queue size: {len(self.url_queue)}, "
-                      f"Relevant: {relevant_count}, Failed: {failed_count}")
+        # Run the BFS crawl
+        max_depth = self.config.get('crawler', {}).get('max_depth', 3)
+        max_queue_size = self.config.get('crawler', {}).get('max_queue_size', 5000)
+        crawl_result = self._run_bfs_crawl(start_urls[0], max_urls, max_depth, max_queue_size)
         
-        workflow_end = time.time()
-        duration = workflow_end - workflow_start
-        
+        # Update workflow stats with crawl results
         workflow_stats.update({
-            "urls_processed": processed_count,
-            "relevant_found": relevant_count,
-            "failed": failed_count,
-            "end_time": datetime.now().isoformat(),
-            "duration_seconds": duration,
-            "urls_visited": len(self.visited_urls),
-            "queue_size_final": len(self.url_queue)
+            "urls_processed": crawl_result["processed"],
+            "relevant_found": crawl_result["relevant"],
+            "failed": crawl_result["failed"],
+            "end_time": crawl_result["end_time"],
+            "duration_seconds": crawl_result["duration_seconds"],
+            "saved_urls": crawl_result.get("saved_urls", 0)
         })
         
-        logger.info(f"Workflow completed in {duration:.2f} seconds")
-        logger.info(f"Processed: {processed_count}, Relevant: {relevant_count}, Failed: {failed_count}")
+        logger.info(f"Workflow completed in {workflow_stats['duration_seconds']:.2f} seconds")
+        logger.info(f"Processed: {workflow_stats['urls_processed']}, "
+                   f"Relevant: {workflow_stats['relevant_found']}, "
+                   f"Failed: {workflow_stats['failed']}")
         
         return workflow_stats
 

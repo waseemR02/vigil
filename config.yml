@@ -9,7 +9,7 @@ logging:
   console_level: INFO
 
 crawler:
-  user_agent: "VIGIL Cybersecurity News Crawler/0.1"
+  user_agent: "Mozilla/5.0 (X11; Linux i686; rv:137.0) Gecko/20100101 Firefox/137.0"
   timeout: 30
   delay: 1.5
   max_retries: 3
@@ -61,4 +61,4 @@ scheduler:
     - id: "minutes-krebsonsecurity"
       url: "https://krebsonsecurity.com/"
       interval_minutes: 2  # every 2 mins
-      max_urls: 15
+      max_urls: 100

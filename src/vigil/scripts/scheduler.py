@@ -35,6 +35,11 @@ def run_scheduler(args):
     # Initialize the scheduler with model and vectorizer paths
     scheduler = VigilScheduler(model_path=args.model_path, vectorizer_path=args.vectorizer_path)
     
+    # Initialize the pipeline to create URL tracking table if needed
+    if hasattr(scheduler, 'pipeline') and scheduler.pipeline is None:
+        from vigil.core.pipeline import Pipeline
+        scheduler.pipeline = Pipeline(model_path=args.model_path, vectorizer_path=args.vectorizer_path)
+    
     # Always try to load jobs from config if no explicit action is specified
     # This ensures jobs are available when starting or exporting
     if args.load_config or (args.start and not args.load_config) or (args.export and not args.load_config):

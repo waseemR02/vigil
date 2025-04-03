@@ -15,5 +15,5 @@ crawled_data/
 data/
 dataset/
 reports/
-database*
+database-workflow/
 *.json
