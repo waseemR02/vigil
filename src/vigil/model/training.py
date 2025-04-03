@@ -275,17 +275,23 @@ class ContentPredictor:
         if not self.feature_extractor and vectorizer_path:
             self.load_vectorizer(vectorizer_path)
     
-    def load_model(self, model_path: str) -> bool:
+    def load_model(self, model_path: str, vectorizer_path: str = None) -> bool:
         """
         Load a model from disk.
         
         Args:
             model_path: Path to the saved model
+            vectorizer_path: Path to the saved vectorizer
             
         Returns:
             True if successful, False otherwise
         """
         self.model_trainer = ModelTrainer.load_model(model_path)
+        
+        # Load vectorizer if path is provided
+        if vectorizer_path and not self.feature_extractor:
+            self.load_vectorizer(vectorizer_path)
+            
         return self.model_trainer is not None
     
     def load_vectorizer(self, vectorizer_path: str) -> bool:
