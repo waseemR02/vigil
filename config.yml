@@ -15,6 +15,7 @@ crawler:
   max_retries: 3
   max_depth: 2
   max_urls: 50
+  max_queue_size: 1000  # Maximum size of URL queue to prevent memory issues
   output_dir: "crawled_data"
   start_urls:
     - "https://thehackernews.com/"
@@ -29,9 +30,14 @@ crawler:
     - "www.bleepingcomputer.com"
     - "krebsonsecurity.com"
 
+model:
+  path: "dataset/dataset-20250403-121508/models/logistic_regression-20250403-121542.pkl"  # Directly specify model path
+  vectorizer_path: "dataset/dataset-20250403-121508/vectorizer.pkl"  # Add vectorizer path
+  confidence_threshold: 0.6             # Threshold for classification
+
 storage:
   file_store_path: "data"
-  db_path: "data/vigil_data.db"
+  db_path: "data/vigil_data.db"  # This should be a path in a directory that exists or can be created
   auto_save: true    # Automatically save crawled content to the database
-  auto_export: true # Automatically export data after crawling
+  auto_export: true  # Automatically export data after crawling
   export_format: "json"
