@@ -4,7 +4,6 @@ Connects crawler, ML analyzer, and database components.
 """
 import logging
 import time
-import yaml
 import os
 from datetime import datetime
 from urllib.parse import urlparse

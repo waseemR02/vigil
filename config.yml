@@ -31,8 +31,8 @@ crawler:
     - "krebsonsecurity.com"
 
 model:
-  path: "dataset/dataset-20250403-121508/models/logistic_regression-20250403-121542.pkl"  # Directly specify model path
-  vectorizer_path: "dataset/dataset-20250403-121508/vectorizer.pkl"  # Add vectorizer path
+  path: "dataset/dataset-20250403-141226/models/logistic_regression-20250403-141246.pkl"  # Directly specify model path
+  vectorizer_path: "dataset/dataset-20250403-141226/vectorizer.pkl"  # Add vectorizer path
   confidence_threshold: 0.6             # Threshold for classification
 
 storage:
@@ -41,3 +41,24 @@ storage:
   auto_save: true    # Automatically save crawled content to the database
   auto_export: true  # Automatically export data after crawling
   export_format: "json"
+
+scheduler:
+  db_path: "database-workflow/scheduler.db"  # Separate database for scheduler
+  job_store_path: "database-workflow/jobs.json"  # Path to store job information (legacy)
+  jobs:
+    # - id: "daily-threatpost"
+    #   url: "https://threatpost.com/"
+    #   interval_minutes: 1440  # Daily
+    #   max_urls: 25
+    # - id: "hourly-krebsonsecurity"
+    #   url: "https://krebsonsecurity.com/"
+    #   interval_minutes: 60  # Hourly
+    #   max_urls: 15
+    # - id: "weekly-bleeping"
+    #   url: "https://www.bleepingcomputer.com/"
+    #   interval_minutes: 10080  # Weekly
+    #   max_urls: 50
+    - id: "minutes-krebsonsecurity"
+      url: "https://krebsonsecurity.com/"
+      interval_minutes: 2  # every 2 mins
+      max_urls: 15
