@@ -16,10 +16,6 @@ from vigil.database import queries
 from vigil.database.connection import get_engine
 
 # Set up logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
 logger = logging.getLogger("vigil.core.monitoring")
 
 class SystemMonitor:

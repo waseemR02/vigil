@@ -20,10 +20,6 @@ from vigil.database.connection import init_db
 from vigil.database import queries
 
 # Set up logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
 logger = logging.getLogger("vigil.core.pipeline")
 
 class Pipeline:
