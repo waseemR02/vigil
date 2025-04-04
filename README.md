@@ -8,7 +8,7 @@ A framework to collect and analyze cyber incident data and present a dashboard a
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/waseemr02/virgil
+   git clone https://github.com/waseemr02/vigil
    cd vigil
    ```
 
