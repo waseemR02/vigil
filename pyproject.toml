@@ -1,6 +1,6 @@
 [project]
 name = "vigil"
-version = "0.1.0"
+version = "1.0.0"
 description = "A framework to collect, analyze and display cyber incident data with visualization"
 readme = "README.md"
 authors = [
