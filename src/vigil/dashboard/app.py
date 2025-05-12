@@ -23,7 +23,6 @@ API_BASE_URL = os.environ.get("VIGIL_API_URL", "http://localhost:8000")
 # Set up templates
 templates = Jinja2Templates(directory="src/vigil/dashboard/templates")
 
-# Add custom functions and filters to Jinja2
 def now():
     """Return current datetime for use in templates."""
     return datetime.now()

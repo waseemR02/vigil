@@ -11,13 +11,13 @@ logger = logging.getLogger("vigil.api")
 app = FastAPI(
     title="Vigil API",
     description="API for Vigil cybersecurity incident dashboard",
-    version="0.1.0",
+    version="1.0.0",
 )
 
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific origins
+    allow_origins=["*"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
